@@ -16,16 +16,27 @@ import pdb
 
 
 class SynapseCounter(object):
-    def __init__(self):
+    def __init__(self, filepath: str, sequence_adjust_params: dict):
         self.images = None
         self.final_images = list()
         self.meta_data = dict()
-        self.load_data('./Data/Atta/CG379_24_63xZ2_Ca_re_2/')
+        self.load_data(filepath)
+
+        y_start = sequence_adjust_params['y_start']
+        x_start = sequence_adjust_params['x_start']
+        lower_threshold = sequence_adjust_params['lower_threshold']
+        upper_threshold = sequence_adjust_params['upper_threshold']
+        square_size = sequence_adjust_params['square_size']
         self.adjust_sequence(
-            y_start=400, x_start=200, lower_threshold=60, upper_threshold=100,
+            y_start=y_start,
+            x_start=x_start,
+            lower_threshold=lower_threshold,
+            upper_threshold=upper_threshold,
+            square_size=square_size,
         )
-        for image in self.final_images:
-            self.laplacian_gaussian(image)
+        print('new')
+        # for image in self.final_images:
+         #:w   self.laplacian_gaussian(image)
 
     def load_data(self, filepath: str = None):
         paths = Path(filepath)
@@ -64,11 +75,12 @@ class SynapseCounter(object):
         x_start: int,
         lower_threshold: int,
         upper_threshold: int,
+        square_size: int,
     ):
 
         self.cropped_images = list()
 
-        pixel_number = 10 / self.meta_data['voxel_size']
+        pixel_number = square_size / self.meta_data['voxel_size']
 
         y_stop = int(y_start + pixel_number)
         x_stop = int(x_start + pixel_number)
@@ -101,12 +113,12 @@ class SynapseCounter(object):
                 threshold=int(params[3]),
             )
             blobs[i] = [blobs_log, params]
-        
+
         radii = {}
         for i, b in blobs.items():
             log_blobs = blobs[i][0]
             radii[i] = [b[2] for b in log_blobs]
-        
+
         for r in radii.values():
             median = np.median(r)
             mean = np.mean(r)
