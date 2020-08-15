@@ -1,5 +1,6 @@
-!Data
+!data
 
-Data/*
+data/*
 *.ipynb_*
+.idea
 venv
