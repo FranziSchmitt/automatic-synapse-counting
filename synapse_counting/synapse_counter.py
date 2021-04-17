@@ -45,6 +45,7 @@ class SynapseCounter(object):
         length: Optional[int] = None,
         min_threshold: Optional[int] = None,
         max_threshold: Optional[int] = None,
+        visualize_result: bool = True
     ):
         self._load_data(filepath=filepath)
         if left:
@@ -53,24 +54,33 @@ class SynapseCounter(object):
             self.top = top
         if length:
             self.length = length
-        if lower_threshold:
+        if min_threshold:
             self.min_pixel_value = min_threshold
-        if upper_threshold:
+        if max_threshold:
             self.max_pixel_value = max_threshold
 
         self._apply_laplacian_of_gaussian_to_images()
         overlapping = self._count_synapses()
 
-        result_path = filepath / "result"
-        self._visualize_result(result_path, overlapping)
+        if visualize_result:
+            result_path = filepath / "result"
+            self._visualize_result(result_path, overlapping)
 
     def _load_data(self, filepath: Union[str, Path]):
         if type(filepath) == str:
             filepath = Path(filepath)
 
+        if not filepath.is_dir():
+            raise ValueError(f'The path you provided does not exist: {filepath}.')
+
         paths = Path(filepath)
-        image_paths = paths.glob("*.tif")
-        meta_data_path = list(paths.glob("*.txt"))[0]
+        image_paths = list(paths.glob("*.tif"))
+        try:
+            meta_data_path = list(paths.glob("*.txt"))[0]
+        except IndexError:
+            raise ValueError(f'Could not find a metadata file in {filepath}. Expected to find a .txt file there.')
+        if not image_paths:
+            raise ValueError(f"Could not find any tif image files in {filepath}")
 
         with meta_data_path.open("r", encoding="latin-1") as fid:
             text_file = fid.readlines()
@@ -78,6 +88,9 @@ class SynapseCounter(object):
         for line in text_file:
             if VOXEL_HEIGHT in line.split():
                 self.meta_data[VOXEL_HEIGHT] = float(line.split()[-1][:-1])
+
+        if VOXEL_HEIGHT not in self.meta_data:
+            raise ValueError(f'Unable to find voxel height in {meta_data_path}')
 
         images = ImageSequence(list(image_paths), as_grey=True)
         grey_images = self._get_grey_sequence(images)
@@ -221,6 +234,12 @@ if __name__ == "__main__":
         default=None,
         help="Lower threshold for thresholding. Defaults at 50.",
     )
+    parser.add_argument(
+        "--save-results",
+        "-s",
+        default=True,
+        help="Lower threshold for thresholding. Defaults at 50.",
+    )
 
     args = parser.parse_args()
 
@@ -230,6 +249,7 @@ if __name__ == "__main__":
     square_length = args.length
     upper_threshold = args.upper_threshold
     lower_threshold = args.lower_threshold
+    save_result = args.save_results
 
     counter = SynapseCounter()
     counter.count_synapses(
@@ -239,4 +259,5 @@ if __name__ == "__main__":
         length=square_length,
         max_threshold=upper_threshold,
         min_threshold=lower_threshold,
+        visualize_result=save_result
     )
