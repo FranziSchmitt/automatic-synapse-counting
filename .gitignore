@@ -4,3 +4,4 @@ data/*
 *.ipynb_*
 .idea
 venv
+*/__pychache__/
